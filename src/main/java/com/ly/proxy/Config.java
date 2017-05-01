@@ -1,30 +1,50 @@
 package com.ly.proxy;
 
 public class Config {
-	private String host;
+	private String remoteHost;
+	private int localPort;
+	private String localhost;
+	private int remotePort;
 	
-	private int port;
-	
-	public Config(String host,int port){
-		this.host = host;
-		this.port = port;
+	public Config(String localHost,int localPort,String remoteHost,int remotePort){
+		this.remoteHost = remoteHost;
+		this.remotePort = remotePort;
+		this.localhost = localHost;
+		this.localPort = localPort;
 	}
 
-	public String getHost() {
-		return host;
+	public String getRemoteHost() {
+		return remoteHost;
 	}
 
-	public void setHost(String host) {
-		this.host = host;
+	public void setRemoteHost(String remoteHost) {
+		this.remoteHost = remoteHost;
 	}
 
-	public int getPort() {
-		return port;
+	public int getLocalPort() {
+		return localPort;
 	}
 
-	public void setPort(int port) {
-		this.port = port;
+	public void setLocalPort(int localPort) {
+		this.localPort = localPort;
 	}
+
+	public String getLocalhost() {
+		return localhost;
+	}
+
+	public void setLocalhost(String localhost) {
+		this.localhost = localhost;
+	}
+
+	public int getRemotePort() {
+		return remotePort;
+	}
+
+	public void setRemotePort(int remotePort) {
+		this.remotePort = remotePort;
+	}
+
 	
 	
 }
