@@ -3,13 +3,12 @@ package com.ly.proxy;
 public class Config {
 	private String remoteHost;
 	private int localPort;
-	private String localhost;
+	private static final String localhost = "127.0.0.1";
 	private int remotePort;
 	
-	public Config(String localHost,int localPort,String remoteHost,int remotePort){
+	public Config(int localPort,String remoteHost,int remotePort){
 		this.remoteHost = remoteHost;
 		this.remotePort = remotePort;
-		this.localhost = localHost;
 		this.localPort = localPort;
 	}
 
@@ -33,9 +32,6 @@ public class Config {
 		return localhost;
 	}
 
-	public void setLocalhost(String localhost) {
-		this.localhost = localhost;
-	}
 
 	public int getRemotePort() {
 		return remotePort;

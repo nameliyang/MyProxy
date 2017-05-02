@@ -6,11 +6,13 @@ import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
+import java.util.logging.Logger;
 
 import com.ly.buffer.ProxyBuffer;
 import com.ly.buffer.ProxyBuffer.BufferState;
 //comment
 public class ClientHandler{
+	Logger  logger = Logger.getLogger(ClientHandler.class.getName());
 	
 	SocketChannel clientChannel;
 	Config config;
@@ -27,7 +29,6 @@ public class ClientHandler{
 	public void initEvents(Selector selector) throws IOException{
 		this.selector = selector;
 		clientChannel.configureBlocking(false);
-		
 		serverChannel = SocketChannel.open();
 		serverChannel.connect(new InetSocketAddress(config.getRemoteHost(),config.getRemotePort()));
 		serverChannel.configureBlocking(false);
@@ -36,30 +37,37 @@ public class ClientHandler{
 //		register();
 	}
 	
-	public void registerClientChannel() throws ClosedChannelException {
-		int interstOps =0;
-		if(serverBuffer.state == BufferState.READY_TO_READ){
-			interstOps|=SelectionKey.OP_WRITE;
-		}else if(clientBuffer.state == BufferState.READY_TO_WRITE){
-			interstOps|=SelectionKey.OP_READ;
-		}
-		clientChannel.register(selector, interstOps,this);
-	}
 	
-	public void handler(SocketChannel socketChannel) throws IOException {
-		SelectionKey selectKey = socketChannel.keyFor(selector);
-		if(selectKey.isReadable()){
-			int num  = readFromChannel(socketChannel);
-			if(num == -1){
-				closeChannel();
-				return;
-			}
-		} else if(selectKey.isWritable()){
-			writeToChannel(socketChannel);
+	public void readHandler(SocketChannel socketChannel) throws IOException {
+		int num  = readFromChannel(socketChannel);
+		if(num == -1){
+			closeChannel();
+			logger.warning("远程主机关闭连接。。。");
+			return;
 		}
 		register();
 	}
 	
+	public void writeHandler(SocketChannel socketChannel) throws IOException {
+		writeToChannel(socketChannel);
+		register();
+	}
+	
+//
+//	public void handler(SocketChannel socketChannel) throws IOException {
+//		SelectionKey selectKey = socketChannel.keyFor(selector);
+//		if(selectKey.isReadable()){
+//			int num  = readFromChannel(socketChannel);
+//			if(num == -1){
+//				closeChannel();
+//				return;
+//			}
+//		} else if(selectKey.isWritable()){
+//			writeToChannel(socketChannel);
+//		}
+//		register();
+//	}
+//	
 	private void register() throws ClosedChannelException  {
 		int interstOps =0;
 		if(serverBuffer.state == BufferState.READY_TO_READ){
@@ -67,8 +75,8 @@ public class ClientHandler{
 		}else if(clientBuffer.state == BufferState.READY_TO_WRITE){
 			interstOps|=SelectionKey.OP_READ;
 		}
-		
 		clientChannel.register(selector, interstOps,this);
+		
 		 interstOps =0;
 		if(serverChannel.isConnected()){
 			interstOps = 0;
@@ -83,6 +91,7 @@ public class ClientHandler{
 		}
 		
 	}
+	
 	private void closeChannel() throws IOException {
 		   clientChannel.keyFor(selector).cancel();
 		   serverChannel.keyFor(selector).cancel();
