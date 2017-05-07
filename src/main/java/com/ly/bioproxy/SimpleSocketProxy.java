@@ -20,7 +20,7 @@ import java.util.concurrent.CountDownLatch;
  * @author Administrator
  * 
  */
-public class SimpleSocket implements Runnable {
+public class SimpleSocketProxy implements Runnable {
  
     /**
      * 来源的代理socket
@@ -59,7 +59,7 @@ public class SimpleSocket implements Runnable {
      * @param pwd
      *            socks5代理的登录密码，
      */
-    protected SimpleSocket(Socket socket, boolean openSock4, boolean openSock5, String user, String pwd) {
+    protected SimpleSocketProxy(Socket socket, boolean openSock4, boolean openSock5, String user, String pwd) {
     	
         this.socket = socket;
         this.openSock4 = openSock4;
@@ -390,7 +390,7 @@ public class SimpleSocket implements Runnable {
         Socket socket = null;
         log("Socks server port : %s listenning...", port);
         while (null != (socket = ss.accept())) {
-            new Thread(new SimpleSocket(socket, openSock4, openSock5, user, pwd)).start();
+            new Thread(new SimpleSocketProxy(socket, openSock4, openSock5, user, pwd)).start();
         }
         ss.close();
     }
@@ -421,6 +421,6 @@ public class SimpleSocket implements Runnable {
 //            pwd = args[i].trim();
 //        }
 //        SimpleSocket.startServer(port, openSock4, openSock5, user, pwd);
-    	SimpleSocket.startServer(80, true, false, null	, null);
+    	SimpleSocketProxy.startServer(81, false, true, null	, null);
     }
 }

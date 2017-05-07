@@ -1,4 +1,4 @@
-
+package com.ly.proxy;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -41,13 +41,13 @@ public class SimpleServer {
 				writer.println(new Date().toLocaleString());writer.flush();
 				String line = "";
 				while((line = bufferedReader.readLine())!=null&&!"".equals(line)){
-					writer.println(line);
+					writer.println(line.toUpperCase());
 					writer.flush();
 					System.out.println("read line = "+line);
 				}
 				bufferedReader.close();
 				writer.close();
-				System.out.println("end socket..........");
+				System.out.println("end server........");
 			} catch (IOException e) {
 				e.printStackTrace();
 			}finally{
