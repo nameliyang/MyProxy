@@ -421,6 +421,6 @@ public class SimpleSocketProxy implements Runnable {
 //            pwd = args[i].trim();
 //        }
 //        SimpleSocket.startServer(port, openSock4, openSock5, user, pwd);
-    	SimpleSocketProxy.startServer(81, false, true, null	, null);
+    	SimpleSocketProxy.startServer(1081, false, true, null	, null);
     }
 }
