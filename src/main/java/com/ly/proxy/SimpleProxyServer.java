@@ -10,7 +10,9 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 public class SimpleProxyServer {
@@ -21,36 +23,46 @@ public class SimpleProxyServer {
 		0x00
 	};
 	
-	static final ExecutorService service = Executors.newFixedThreadPool(10);
+	static final ExecutorService service = new ThreadPoolExecutor(10, 50,
+            0L, TimeUnit.MILLISECONDS,
+            new LinkedBlockingQueue<Runnable>());
 	
 	public static void main(String[] args) throws IOException, InterruptedException {
 		ServerSocket serverSocket = new ServerSocket(1081);
 		while(true){
 			Socket socket;
 			socket = serverSocket.accept();
-			try {
-				Socket proxySocket = handler(socket);
-				transf(socket,proxySocket);
-			} catch (IOException e) {
-				e.printStackTrace();
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-//			service.submit(new Runnable() {
-//				@Override
-//				public void run() {
-//					
-//					
-//				}
-//			});
+			service.submit(new Runnable() {
+				@Override
+				public void run() {
+					try {
+						Socket proxySocket = handler(socket);
+						transf(socket,proxySocket);
+					} catch (IOException e) {
+						e.printStackTrace();
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					
+				}
+			});
 		}
 	}
-	
+	private static  void close(Socket socket, final InputStream inputStream,
+			final OutputStream outputStream) {
+		try{
+			inputStream.close();
+			outputStream.close();
+			socket.close();
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+	};
 	  
 	private static void transf(Socket socket, Socket proxySocket) throws IOException, InterruptedException {
 		final InputStream inputStream = socket.getInputStream();
-		final OutputStream outputSteam = socket.getOutputStream();
+		final OutputStream outputStream = socket.getOutputStream();
 		final InputStream proxyInputStream = proxySocket.getInputStream();
 		final OutputStream proxyOutputStream = proxySocket.getOutputStream();
 		final CountDownLatch latch  = new CountDownLatch(2);
@@ -61,36 +73,69 @@ public class SimpleProxyServer {
 					while(true){
 						int  read =  inputStream.read();
 						if(read==-1){
+							logger.info("客户端关闭连接,将关闭 proxysocket close...");
 							proxySocket.close();
 							break;
-						}else{
-							proxyOutputStream.write(read);
 						}
+						writeToRemoteServer(proxyOutputStream, read);
 					}
 				} catch (IOException e) {
 					e.printStackTrace();
 				}finally{
 					latch.countDown();
+					close(socket, inputStream, outputStream);
+					
 				}
-			};
+			}
+
+			private void writeToRemoteServer(
+					final OutputStream proxyOutputStream, int read)
+					throws IOException {
+				try{
+					proxyOutputStream.write(read);
+				}catch(IOException e){
+					close(proxySocket, proxyInputStream, proxyOutputStream);
+					throw e;
+				}
+			}
+
 		};
-		
 		Thread   clientThread = new Thread(){
+			
 			public void run() {
+				ByteBuffer tmpBuffer = ByteBuffer.allocate(1024);
+				
 				try {
 					while(true){
 						int read =  proxyInputStream.read();
 						if(read==-1){
+							logger.info("远程主机关闭连接。。。将关闭socket");
 							socket.close();
 							break;
 						}else{
-							outputSteam.write(read);
+							if(tmpBuffer.hasRemaining()){
+								tmpBuffer.put((byte) (read&0xFF));
+							}else{
+								
+							}
+							writeToClient(outputStream, read);
 						}
 					}
 				} catch (IOException e) {
 					e.printStackTrace();
 				}finally{
 					latch.countDown();
+					close(proxySocket, proxyInputStream, proxyOutputStream);
+				}
+			}
+
+			private void writeToClient(final OutputStream outputStream, int read)
+					throws IOException {
+				try{
+					outputStream.write(read);
+				}catch(IOException e){
+					close(socket, inputStream, outputStream);
+					throw e;
 				}
 			};
 		};
@@ -99,7 +144,6 @@ public class SimpleProxyServer {
 		latch.await();
 	}
     
-	
 	private static Socket handler(Socket socket) throws IOException {
 		InputStream inputStream = socket.getInputStream();
 		OutputStream outputStream = socket.getOutputStream();
