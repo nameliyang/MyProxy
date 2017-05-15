@@ -13,19 +13,22 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Logger;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SimpleProxyServer {
 	
-	private static final Logger logger = Logger.getAnonymousLogger();
+	private static final Logger logger = LoggerFactory.getLogger(SimpleProxyServer.class);
 	
 	private static final byte[] supportMethods = new byte[]{
 		0x00
 	};
 	
-	static final ExecutorService service = new ThreadPoolExecutor(10, 50,
+	static final ExecutorService service = new ThreadPoolExecutor(10, 100,
             0L, TimeUnit.MILLISECONDS,
-            new LinkedBlockingQueue<Runnable>());
+            new LinkedBlockingQueue<Runnable>(100));
 	
 	public static void main(String[] args) throws IOException, InterruptedException {
 		ServerSocket serverSocket = new ServerSocket(1081);
@@ -59,40 +62,47 @@ public class SimpleProxyServer {
 			e.printStackTrace();
 		}
 	};
-	  
+	
+	public static final AtomicInteger  id = new AtomicInteger(0);
+	
 	private static void transf(Socket socket, Socket proxySocket) throws IOException, InterruptedException {
 		final InputStream inputStream = socket.getInputStream();
 		final OutputStream outputStream = socket.getOutputStream();
 		final InputStream proxyInputStream = proxySocket.getInputStream();
 		final OutputStream proxyOutputStream = proxySocket.getOutputStream();
 		final CountDownLatch latch  = new CountDownLatch(2);
-		
+		final int id = SimpleProxyServer.id.incrementAndGet();
 		Thread serverThread = new Thread(){
 			public void run() {
+				long startTime = System.currentTimeMillis();
+				System.out.println("--------------clientThread start id = "+id+"-------------");
 				try {
+					byte[] buffer = new byte[1024];
 					while(true){
-						int  read =  inputStream.read();
-						if(read==-1){
-							logger.info("客户端关闭连接,将关闭 proxysocket close...");
+						int  read =  inputStream.read(buffer);
+						if(read == -1){
+							logger.info("客户端关闭连接,将主动关闭代理proxysocket");
 							proxySocket.close();
 							break;
 						}
-						writeToRemoteServer(proxyOutputStream, read);
+						writeToRemoteServer(proxyOutputStream,buffer, read);
 					}
+					
 				} catch (IOException e) {
 					e.printStackTrace();
 				}finally{
 					latch.countDown();
 					close(socket, inputStream, outputStream);
-					
+					long endTime = System.currentTimeMillis();
+					System.out.println("--------------clientThread end id = "+id+",time="+(endTime-startTime)/1000);
 				}
 			}
 
 			private void writeToRemoteServer(
-					final OutputStream proxyOutputStream, int read)
+					final OutputStream proxyOutputStream,byte[] buffer, int read)
 					throws IOException {
 				try{
-					proxyOutputStream.write(read);
+					proxyOutputStream.write(buffer,0,read);
 				}catch(IOException e){
 					close(proxySocket, proxyInputStream, proxyOutputStream);
 					throw e;
@@ -104,12 +114,14 @@ public class SimpleProxyServer {
 			
 			public void run() {
 				ByteBuffer tmpBuffer = ByteBuffer.allocate(1024);
-				
+				long startTime = System.currentTimeMillis();
+				System.out.println("--------------proxyThread start id = "+id+"-------------");
 				try {
+					byte[] buffer = new byte[1024];
 					while(true){
-						int read =  proxyInputStream.read();
+						int read =  proxyInputStream.read(buffer);
 						if(read==-1){
-							logger.info("远程主机关闭连接。。。将关闭socket");
+							logger.info("远程主机关闭连接。。。将关闭客户端socket");
 							socket.close();
 							break;
 						}else{
@@ -118,7 +130,7 @@ public class SimpleProxyServer {
 							}else{
 								
 							}
-							writeToClient(outputStream, read);
+							writeToClient(outputStream,buffer, read);
 						}
 					}
 				} catch (IOException e) {
@@ -126,13 +138,15 @@ public class SimpleProxyServer {
 				}finally{
 					latch.countDown();
 					close(proxySocket, proxyInputStream, proxyOutputStream);
+					long endTime = System.currentTimeMillis();
+					System.out.println("--------------proxyThread end id = "+id+",time="+(endTime-startTime)/1000);
 				}
 			}
 
-			private void writeToClient(final OutputStream outputStream, int read)
+			private void writeToClient(final OutputStream outputStream,byte[] buf, int read)
 					throws IOException {
 				try{
-					outputStream.write(read);
+					outputStream.write(buf,0,read);
 				}catch(IOException e){
 					close(socket, inputStream, outputStream);
 					throw e;
@@ -145,6 +159,7 @@ public class SimpleProxyServer {
 	}
     
 	private static Socket handler(Socket socket) throws IOException {
+		
 		InputStream inputStream = socket.getInputStream();
 		OutputStream outputStream = socket.getOutputStream();
 		int read = inputStream.read();
@@ -185,6 +200,7 @@ public class SimpleProxyServer {
 		            outputStream.flush();
 		            return proxySocket;
 			    }else{
+			    	logger.error("{}:{} 不可达 ",host,port);
 			    	throw new RuntimeException();
 			    }
 			}  
