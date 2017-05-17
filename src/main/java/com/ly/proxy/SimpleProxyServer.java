@@ -32,6 +32,8 @@ public class SimpleProxyServer {
 	
 	public static void main(String[] args) throws IOException, InterruptedException {
 		ServerSocket serverSocket = new ServerSocket(1081);
+		serverSocket.setReuseAddress(true);
+		serverSocket.setSoTimeout(0);
 		while(true){
 			Socket socket;
 			socket = serverSocket.accept();
@@ -40,6 +42,8 @@ public class SimpleProxyServer {
 				public void run() {
 					try {
 						Socket proxySocket = handler(socket);
+						SocketPipe socketPipe = new SocketPipe(socket, proxySocket);
+					//	socketPipe.start();
 						transf(socket,proxySocket);
 					} catch (IOException e) {
 						e.printStackTrace();
@@ -47,7 +51,6 @@ public class SimpleProxyServer {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
-					
 				}
 			});
 		}
@@ -64,8 +67,9 @@ public class SimpleProxyServer {
 	};
 	
 	public static final AtomicInteger  id = new AtomicInteger(0);
-	
+	private static final int BUFF_SIZE = 1024*1024*10;
 	private static void transf(Socket socket, Socket proxySocket) throws IOException, InterruptedException {
+		proxySocket.setSoTimeout(2000);
 		final InputStream inputStream = socket.getInputStream();
 		final OutputStream outputStream = socket.getOutputStream();
 		final InputStream proxyInputStream = proxySocket.getInputStream();
@@ -77,7 +81,7 @@ public class SimpleProxyServer {
 				long startTime = System.currentTimeMillis();
 				System.out.println("--------------clientThread start id = "+id+"-------------");
 				try {
-					byte[] buffer = new byte[1024];
+					byte[] buffer = new byte[BUFF_SIZE];
 					while(true){
 						int  read =  inputStream.read(buffer);
 						if(read == -1){
@@ -103,6 +107,8 @@ public class SimpleProxyServer {
 					throws IOException {
 				try{
 					proxyOutputStream.write(buffer,0,read);
+					proxyOutputStream.flush();
+					
 				}catch(IOException e){
 					close(proxySocket, proxyInputStream, proxyOutputStream);
 					throw e;
@@ -117,7 +123,7 @@ public class SimpleProxyServer {
 				long startTime = System.currentTimeMillis();
 				System.out.println("--------------proxyThread start id = "+id+"-------------");
 				try {
-					byte[] buffer = new byte[1024];
+					byte[] buffer = new byte[BUFF_SIZE];
 					while(true){
 						int read =  proxyInputStream.read(buffer);
 						if(read==-1){
@@ -147,6 +153,7 @@ public class SimpleProxyServer {
 					throws IOException {
 				try{
 					outputStream.write(buf,0,read);
+					outputStream.flush();
 				}catch(IOException e){
 					close(socket, inputStream, outputStream);
 					throw e;
