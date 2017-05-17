@@ -19,7 +19,7 @@ public class Test {
 		
 		out.println("GET / HTTP/1.1");
 		out.println("Host: localhost:8080");
-		out.println("Connection: Close");
+		out.println("Connection: keep-alive");
 		out.println();
 		out.println();
 		out.flush();
