@@ -8,6 +8,8 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.Queue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -25,10 +27,12 @@ public class SimpleProxyServer {
 	private static final byte[] supportMethods = new byte[]{
 		0x00
 	};
+	static final BlockingQueue<Runnable> queues = new LinkedBlockingQueue<Runnable>(100);
 	
-	static final ExecutorService service = new ThreadPoolExecutor(10, 100,
+	static final ExecutorService service = 
+			new ThreadPoolExecutor(10, 100,
             0L, TimeUnit.MILLISECONDS,
-            new LinkedBlockingQueue<Runnable>(100));
+            queues);
 	
 	public static void main(String[] args) throws IOException, InterruptedException {
 		ServerSocket serverSocket = new ServerSocket(1081);
@@ -37,6 +41,7 @@ public class SimpleProxyServer {
 		while(true){
 			Socket socket;
 			socket = serverSocket.accept();
+			logger.debug("accept a new socket "+queues.size());
 			service.submit(new Runnable() {
 				@Override
 				public void run() {
@@ -93,7 +98,7 @@ public class SimpleProxyServer {
 					}
 					
 				} catch (IOException e) {
-					e.printStackTrace();
+					logger.error(e.toString());
 				}finally{
 					latch.countDown();
 					close(socket, inputStream, outputStream);
@@ -117,7 +122,6 @@ public class SimpleProxyServer {
 
 		};
 		Thread   clientThread = new Thread(){
-			
 			public void run() {
 				ByteBuffer tmpBuffer = ByteBuffer.allocate(1024);
 				long startTime = System.currentTimeMillis();
@@ -140,7 +144,7 @@ public class SimpleProxyServer {
 						}
 					}
 				} catch (IOException e) {
-					e.printStackTrace();
+					logger.error(e.toString());
 				}finally{
 					latch.countDown();
 					close(proxySocket, proxyInputStream, proxyOutputStream);
