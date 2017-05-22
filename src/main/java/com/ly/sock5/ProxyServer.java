@@ -1,11 +1,18 @@
 package com.ly.sock5;
 
-public class ProxyServer implements Runnable{
+import java.io.IOException;
+
+import com.ly.sock5.handler.SocksHandler;
+
+public interface ProxyServer {
 	
+	int DEFAULT_PORT = 1080;
 	
-	@Override
-	public void run() {
-		
-	}
+	public void start() throws IOException;
+	
+	public void stop();
+	
+	public SocksHandler createHandler();
+	
 	
 }

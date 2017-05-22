@@ -27,10 +27,11 @@ public class SimpleProxyServer {
 	private static final byte[] supportMethods = new byte[]{
 		0x00
 	};
-	static final BlockingQueue<Runnable> queues = new LinkedBlockingQueue<Runnable>(100);
+	
+	static final BlockingQueue<Runnable> queues = new LinkedBlockingQueue<Runnable>(10);
 	
 	static final ExecutorService service = 
-			new ThreadPoolExecutor(10, 100,
+			new ThreadPoolExecutor(100, 100,
             0L, TimeUnit.MILLISECONDS,
             queues);
 	
@@ -48,16 +49,14 @@ public class SimpleProxyServer {
 					try {
 						Socket proxySocket = handler(socket);
 						SocketPipe socketPipe = new SocketPipe(socket, proxySocket);
-					//	socketPipe.start();
+//						socketPipe.start();
 						transf(socket,proxySocket);
-					} catch (IOException e) {
+					} catch (Exception e) {
 						e.printStackTrace();
-					} catch (InterruptedException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
+					} 
 				}
-			});
+			}
+			);
 		}
 	}
 	private static  void close(Socket socket, final InputStream inputStream,
@@ -121,6 +120,7 @@ public class SimpleProxyServer {
 			}
 
 		};
+		
 		Thread   clientThread = new Thread(){
 			public void run() {
 				ByteBuffer tmpBuffer = ByteBuffer.allocate(1024);
