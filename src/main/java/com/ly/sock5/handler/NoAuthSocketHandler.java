@@ -1,5 +1,6 @@
 package com.ly.sock5.handler;
 
+import com.ly.sock5.method.SelectMethodMessage;
 import com.ly.sock5.session.Session;
 
 public class NoAuthSocketHandler implements SocksHandler ,Runnable{
@@ -12,8 +13,8 @@ public class NoAuthSocketHandler implements SocksHandler ,Runnable{
 
 	@Override
 	public void run() {
-		
-		
+		SelectMethodMessage selectMsg = new SelectMethodMessage();
+		session.read(selectMsg);
 	}
 	
 }
