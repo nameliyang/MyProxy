@@ -10,6 +10,7 @@ import com.ly.sock5.handler.SocksHandler;
 import com.ly.sock5.session.BasicSessionManager;
 import com.ly.sock5.session.Session;
 import com.ly.sock5.session.SessionManager;
+import com.ly.sock5.session.SocketWrapper;
 
 public class BasicProxyServer implements ProxyServer,Runnable{
 	
@@ -50,7 +51,8 @@ public class BasicProxyServer implements ProxyServer,Runnable{
 	public void run() {
 		while(!Thread.interrupted()){
 			try {
-				Socket socket = serverSocket.accept();
+				Socket socket  = new SocketWrapper(serverSocket.accept());
+				
 				Session session = sessionManager.newSession(socket);
 				NoAuthSocketHandler handler = new NoAuthSocketHandler(session);
 				service.execute(handler);
@@ -59,5 +61,4 @@ public class BasicProxyServer implements ProxyServer,Runnable{
 			}
 		}
 	}
-
 }
