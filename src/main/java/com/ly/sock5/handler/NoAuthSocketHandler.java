@@ -1,9 +1,12 @@
 package com.ly.sock5.handler;
 
+import java.net.Socket;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.ly.sock5.method.SelectMethodMessage;
+import com.ly.sock5.phase.ConnnectionMessage;
+import com.ly.sock5.phase.SelectMethodMessage;
 import com.ly.sock5.session.Session;
 
 public class NoAuthSocketHandler implements SocksHandler ,Runnable{
@@ -11,6 +14,7 @@ public class NoAuthSocketHandler implements SocksHandler ,Runnable{
 	private static final Logger LOGGER = LoggerFactory.getLogger(NoAuthSocketHandler.class);
 	
 	private Session session;
+	
 	private static final byte SUPPORT_METHOD = 0x00;
 	
 	public NoAuthSocketHandler(Session session){
@@ -27,7 +31,9 @@ public class NoAuthSocketHandler implements SocksHandler ,Runnable{
 			int rtnMethod = findSupportMethod ?0x00:0xFF;
 			session.writeAndFlush(new byte[]{0x05,(byte)rtnMethod});
 			if(rtnMethod == 0xFF ){
-				
+				ConnnectionMessage connMsg = new ConnnectionMessage();
+				Socket proxySocket = session.doConnect(connMsg);
+				session.transfer(proxySocket);
 			}
 		} catch (Exception e) {
 			e.printStackTrace();

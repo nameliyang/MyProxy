@@ -10,7 +10,9 @@ import java.net.Socket;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.ly.sock5.method.SelectMethodMessage;
+import com.ly.sock5.phase.ConnnectionMessage;
+import com.ly.sock5.phase.SelectMethodMessage;
+import com.ly.sock5.pipeline.PipeLineSocket;
 
 public class Session {
 	
@@ -18,37 +20,56 @@ public class Session {
 	
 	Long sessionId;
 	
-	Socket socket;
+	Socket clientSocket;
 	
 	InputStream inputStream;
 	OutputStream outputStream;
 	
+	Socket proxySocket;
+	
 	public Session(Long sessionId,Socket socket) throws IOException{
 		this.sessionId = sessionId;
-		this.socket = socket;
+		this.clientSocket = socket;
 		inputStream = new BufferedInputStream(socket.getInputStream());
 		outputStream = new BufferedOutputStream(socket.getOutputStream());
 	}
 
 	public void doSelectMethod(SelectMethodMessage selectMsg) throws Exception{
 		selectMsg.doSelectMethod(inputStream);
-		
 	}
 	
 	
 	public void close()  {
-		if(socket!=null&&!socket.isClosed()){
+		if(clientSocket!=null&&!clientSocket.isClosed()){
 			try {
-				socket.close();
+				clientSocket.close();
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
 		}
+		if(proxySocket!=null&&!proxySocket.isClosed()){
+			try {
+				proxySocket.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		
 	}
 
 	public void writeAndFlush(byte[] bs) throws IOException {
 		outputStream.write(bs);
 		outputStream.flush();
+	}
+	
+	public Socket doConnect(ConnnectionMessage connMsg) throws IOException {
+		return connMsg.doConnect(inputStream);
+	}
+
+	public void transfer(Socket proxySocket) throws IOException, InterruptedException {
+		this.proxySocket = proxySocket;
+		PipeLineSocket socket = new PipeLineSocket(clientSocket, proxySocket);
+		socket.start();
 	}
 	
 }

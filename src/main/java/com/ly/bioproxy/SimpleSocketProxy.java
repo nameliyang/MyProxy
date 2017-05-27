@@ -314,7 +314,7 @@ public class SimpleSocketProxy implements Runnable {
      * IO操作中共同的关闭方法
      * 
      * @createTime 2014年12月14日 下午7:50:56
-     * @param socket
+     * @param clientSocket
      */
     protected static final void closeIo(Socket closeable) {
         if (null != closeable) {
@@ -329,7 +329,7 @@ public class SimpleSocketProxy implements Runnable {
      * IO操作中共同的关闭方法
      * 
      * @createTime 2014年12月14日 下午7:50:56
-     * @param socket
+     * @param clientSocket
      */
     protected static final void closeIo(Closeable closeable) {
         if (null != closeable) {
